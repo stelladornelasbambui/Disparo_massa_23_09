@@ -102,12 +102,11 @@ async function sendWebhook() {
         if (!textRes.ok) throw new Error("Erro ao enviar texto");
         showToast('Sucesso', 'Texto enviado com sucesso!', 'success');
 
-        // 2️⃣ Se tiver imagem, faz upload e envia separadamente
+        // 2️⃣ Se tiver imagem, faz upload e envia separadamente (sem repetir o texto)
         if (_selectedImageFile) {
             const imageUrl = await uploadToImgbb(_selectedImageFile);
 
             const imagePayload = {
-                message: message, // legenda opcional
                 timestamp: Date.now(),
                 media: {
                     url: imageUrl,
