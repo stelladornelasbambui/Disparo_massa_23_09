@@ -37,7 +37,7 @@ function initializeEventListeners() {
         showToast('Sucesso', 'Abrindo planilha do Google Sheets...', 'success');
     });
 
-    // 👉 Detectar teclas para formatação rápida
+    // 👉 Atalhos de formatação
     elements.textEditor.addEventListener('keydown', handleFormatting);
 }
 
@@ -71,7 +71,7 @@ function handleFormatting(e) {
     }
 }
 
-// ================== ENVIO VIA WEBHOOK ==================
+// ================== ENVIO VIA WEBHOOK (ajuste duplicação) ==================
 async function sendWebhook() {
     if (state.isSending) return;
 
@@ -87,44 +87,46 @@ async function sendWebhook() {
     const apiUrl = "https://webhook.fiqon.app/webhook/9fd68837-4f32-4ee3-a756-418a87beadc9/79c39a2c-225f-4143-9ca4-0d70fa92ee12";
 
     try {
-        // 1️⃣ Envia sempre o texto primeiro
-        const textPayload = {
-            message: message,
-            timestamp: Date.now()
-        };
+        let payload;
 
-        const textRes = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(textPayload)
-        });
-
-        if (!textRes.ok) throw new Error("Erro ao enviar texto");
-        showToast('Sucesso', 'Texto enviado com sucesso!', 'success');
-
-        // 2️⃣ Se tiver imagem, faz upload e envia separadamente
         if (_selectedImageFile) {
+            // 👉 Se tiver imagem, sobe no imgbb e envia só a mídia (sem duplicar texto)
             const imageUrl = await uploadToImgbb(_selectedImageFile);
 
-            const imagePayload = {
-                message: message, // legenda opcional
+            payload = {
+                message: "", // evita duplicação do texto
                 timestamp: Date.now(),
                 media: {
                     url: imageUrl,
                     filename: _selectedImageFile.name
+                },
+                zapi: {
+                    instanceId: '3DF2EE19A630504B2B138E66062CE0C1',
+                    securityToken: 'Fba907eb583fd4fcda5c9b30c52a6edadS'
                 }
             };
-
-            const imgRes = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(imagePayload)
-            });
-
-            if (!imgRes.ok) throw new Error("Erro ao enviar imagem");
-            showToast('Sucesso', 'Imagem enviada com sucesso!', 'success');
+        } else {
+            // 👉 Se não tiver imagem, envia só texto
+            payload = {
+                message: message,
+                timestamp: Date.now()
+            };
         }
 
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const text = await response.text();
+        console.log("Resposta do Webhook:", response.status, text);
+
+        if (!response.ok) {
+            throw new Error(`Erro HTTP ${response.status} - ${text}`);
+        }
+
+        showToast('Sucesso', _selectedImageFile ? 'Imagem enviada!' : 'Texto enviado!', 'success');
     } catch (error) {
         console.error('Erro ao acionar webhook:', error);
         showToast('Erro', 'Falha ao acionar webhook', 'error');
@@ -154,6 +156,7 @@ function showToast(title, message, type = 'success') {
 // ================== UPLOAD PARA IMGBB ==================
 const IMGBB_KEY = 'babc90a7ab9bddc78a89ebe1108ff464';
 
+// Estado/elementos do upload
 let _selectedImageFile = null;
 const imageInputEl = document.getElementById('imageInput');
 const imagePreviewEl = document.getElementById('imagePreview');
@@ -182,9 +185,13 @@ function handleImageSelectedForImgBB(e) {
 
     _selectedImageFile = f;
 
+    // preview (opcional)
     const reader = new FileReader();
     reader.onload = (ev) => {
-        if (previewImgEl) { previewImgEl.src = ev.target.result; imagePreviewEl.style.display = 'block'; }
+        if (previewImgEl) {
+            previewImgEl.src = ev.target.result;
+            if (imagePreviewEl) imagePreviewEl.style.display = 'block';
+        }
     };
     reader.readAsDataURL(f);
 }
@@ -209,7 +216,8 @@ async function uploadToImgbb(file) {
         throw new Error('Falha upload imgbb: ' + (JSON.stringify(json) || res.statusText));
     }
 
-    return json.data.display_url || json.data.url || json.data.thumb.url;
+    // Preferir a URL de exibição pública
+    return json.data.display_url || json.data.url || (json.data.thumb && json.data.thumb.url);
 }
 
 function fileToBase64(file) {
