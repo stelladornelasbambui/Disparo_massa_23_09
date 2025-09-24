@@ -1,4 +1,4 @@
-// ================== CONFIG =d========ddddddddddddddd=========
+// ================== CONFIG ==================
 let CONFIG = {
     maxChars: 2000,
     sheetId: '1nT_ccRwFtEWiYvh5s4iyIDTgOj5heLnXSixropbGL8s',
@@ -93,16 +93,15 @@ async function sendWebhook() {
             timestamp: Date.now()
         };
 
-        const textRes = await fetch(apiUrl, {
+        await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(textPayload)
         });
 
-        if (!textRes.ok) throw new Error("Erro ao enviar texto");
         showToast('Sucesso', 'Texto enviado com sucesso!', 'success');
 
-        // 2️⃣ Se tiver imagem, envia a imagem com o mesmo texto como legenda
+        // 2️⃣ Se tiver imagem, envia a imagem com o texto como legenda
         if (_selectedImageFile) {
             const imageUrl = await uploadToImgbb(_selectedImageFile);
 
@@ -115,13 +114,12 @@ async function sendWebhook() {
                 }
             };
 
-            const imgRes = await fetch(apiUrl, {
+            await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(imagePayload)
             });
 
-            if (!imgRes.ok) throw new Error("Erro ao enviar imagem");
             showToast('Sucesso', 'Imagem enviada com sucesso!', 'success');
         }
 
@@ -183,3 +181,40 @@ function handleImageSelectedForImgBB(e) {
     _selectedImageFile = f;
 
     const reader = new FileReader();
+    reader.onload = (ev) => {
+        if (previewImgEl) { previewImgEl.src = ev.target.result; imagePreviewEl.style.display = 'block'; }
+    };
+    reader.readAsDataURL(f);
+}
+
+async function uploadToImgbb(file) {
+    const base64 = await fileToBase64(file);
+    const commaIndex = base64.indexOf(',');
+    const pureBase64 = commaIndex >= 0 ? base64.slice(commaIndex + 1) : base64;
+
+    const form = new FormData();
+    form.append('key', IMGBB_KEY);
+    form.append('image', pureBase64);
+    form.append('name', file.name.replace(/\.[^/.]+$/, ""));
+
+    const res = await fetch('https://api.imgbb.com/1/upload', {
+        method: 'POST',
+        body: form
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json || !json.data) {
+        throw new Error('Falha upload imgbb: ' + (JSON.stringify(json) || res.statusText));
+    }
+
+    return json.data.display_url || json.data.url || json.data.thumb.url;
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+    });
+}
