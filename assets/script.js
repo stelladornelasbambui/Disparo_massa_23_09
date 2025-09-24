@@ -1,4 +1,4 @@
-// ================== CONFIG =======sssss===========
+// ================== CONFIG ==================
 let CONFIG = {
     maxChars: 2000,
     sheetId: '1nT_ccRwFtEWiYvh5s4iyIDTgOj5heLnXSixropbGL8s',
@@ -87,26 +87,26 @@ async function sendWebhook() {
     const apiUrl = "https://webhook.fiqon.app/webhook/9fd68837-4f32-4ee3-a756-418a87beadc9/79c39a2c-225f-4143-9ca4-0d70fa92ee12";
 
     try {
-        // 1️⃣ Envia só o texto
+        // 1️⃣ Envia sempre o texto primeiro
         const textPayload = {
             message: message,
             timestamp: Date.now()
         };
 
-        await fetch(apiUrl, {
+        const textRes = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(textPayload)
         });
 
+        if (!textRes.ok) throw new Error("Erro ao enviar texto");
         showToast('Sucesso', 'Texto enviado com sucesso!', 'success');
 
-        // 2️⃣ Se tiver imagem, envia só a imagem (com message vazio p/ compatibilidade)
+        // 2️⃣ Se tiver imagem, faz upload e envia separadamente (sem repetir o texto)
         if (_selectedImageFile) {
             const imageUrl = await uploadToImgbb(_selectedImageFile);
 
             const imagePayload = {
-                message: "", // precisa existir mas vazio não gera bolha duplicada
                 timestamp: Date.now(),
                 media: {
                     url: imageUrl,
@@ -114,12 +114,13 @@ async function sendWebhook() {
                 }
             };
 
-            await fetch(apiUrl, {
+            const imgRes = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(imagePayload)
             });
 
+            if (!imgRes.ok) throw new Error("Erro ao enviar imagem");
             showToast('Sucesso', 'Imagem enviada com sucesso!', 'success');
         }
 
