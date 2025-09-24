@@ -75,7 +75,7 @@ function handleFormatting(e) {
 async function sendWebhook() {
     if (state.isSending) return;
 
-    const message = elements.textEditor.innerText.trim(); // preserva quebras
+    const message = elements.textEditor.innerText.trim();
     if (!message) {
         showToast('Aviso', 'Digite uma mensagem antes de enviar', 'warning');
         return;
@@ -87,13 +87,26 @@ async function sendWebhook() {
     const apiUrl = "https://webhook.fiqon.app/webhook/9fd68837-4f32-4ee3-a756-418a87beadc9/79c39a2c-225f-4143-9ca4-0d70fa92ee12";
 
     try {
+        // Se tiver imagem selecionada, faz upload para ImgBB
+        let media = null;
+        if (_selectedImageFile) {
+            const imageUrl = await uploadToImgbb(_selectedImageFile);
+            media = {
+                url: imageUrl,
+                filename: _selectedImageFile.name
+            };
+        }
+
+        const payload = {
+            message: message,
+            timestamp: Date.now(),
+            media: media // <<-- aqui garantimos que chega no webhook
+        };
+
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: message,
-                timestamp: Date.now()
-            })
+            body: JSON.stringify(payload)
         });
 
         const text = await response.text();
