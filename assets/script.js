@@ -101,11 +101,12 @@ async function sendWebhook() {
 
         showToast('Sucesso', 'Texto enviado com sucesso!', 'success');
 
-        // 2️⃣ Se tiver imagem, envia só a imagem (sem legenda)
+        // 2️⃣ Se tiver imagem, envia só a imagem (com message vazio p/ compatibilidade)
         if (_selectedImageFile) {
             const imageUrl = await uploadToImgbb(_selectedImageFile);
 
             const imagePayload = {
+                message: "", // precisa existir mas vazio não gera bolha duplicada
                 timestamp: Date.now(),
                 media: {
                     url: imageUrl,
