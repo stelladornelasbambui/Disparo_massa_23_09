@@ -1,4 +1,4 @@
-// Configurações globais - carregadas do config.json
+// Configurações globais - carregadas do config.jsonsss
 let CONFIG = {
 maxChars: 2000,
 sheetId: '1nT_ccRwFtEWiYvh5s4iyIDTgOj5heLnXSixropbGL8s',
