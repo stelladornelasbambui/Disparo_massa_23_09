@@ -87,36 +87,44 @@ async function sendWebhook() {
     const apiUrl = "https://webhook.fiqon.app/webhook/9fd68837-4f32-4ee3-a756-418a87beadc9/79c39a2c-225f-4143-9ca4-0d70fa92ee12";
 
     try {
-        // Se tiver imagem selecionada, faz upload para ImgBB
-        let media = null;
-        if (_selectedImageFile) {
-            const imageUrl = await uploadToImgbb(_selectedImageFile);
-            media = {
-                url: imageUrl,
-                filename: _selectedImageFile.name
-            };
-        }
-
-        const payload = {
+        // 1️⃣ Envia sempre o texto primeiro
+        const textPayload = {
             message: message,
-            timestamp: Date.now(),
-            media: media
+            timestamp: Date.now()
         };
 
-        const response = await fetch(apiUrl, {
+        const textRes = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(textPayload)
         });
 
-        const text = await response.text();
-        console.log("Resposta do Webhook:", text);
+        if (!textRes.ok) throw new Error("Erro ao enviar texto");
+        showToast('Sucesso', 'Texto enviado com sucesso!', 'success');
 
-        if (!response.ok) {
-            throw new Error(`Erro HTTP ${response.status} - ${text}`);
+        // 2️⃣ Se tiver imagem, faz upload e envia separadamente
+        if (_selectedImageFile) {
+            const imageUrl = await uploadToImgbb(_selectedImageFile);
+
+            const imagePayload = {
+                message: message, // legenda opcional
+                timestamp: Date.now(),
+                media: {
+                    url: imageUrl,
+                    filename: _selectedImageFile.name
+                }
+            };
+
+            const imgRes = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(imagePayload)
+            });
+
+            if (!imgRes.ok) throw new Error("Erro ao enviar imagem");
+            showToast('Sucesso', 'Imagem enviada com sucesso!', 'success');
         }
 
-        showToast('Sucesso', 'Mensagem enviada com sucesso!', 'success');
     } catch (error) {
         console.error('Erro ao acionar webhook:', error);
         showToast('Erro', 'Falha ao acionar webhook', 'error');
