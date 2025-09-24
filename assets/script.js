@@ -87,7 +87,7 @@ async function sendWebhook() {
     const apiUrl = "https://webhook.fiqon.app/webhook/9fd68837-4f32-4ee3-a756-418a87beadc9/79c39a2c-225f-4143-9ca4-0d70fa92ee12";
 
     try {
-        // 1️⃣ Envia sempre o texto primeiro
+        // 1️⃣ Envia o texto puro
         const textPayload = {
             message: message,
             timestamp: Date.now()
@@ -102,11 +102,12 @@ async function sendWebhook() {
         if (!textRes.ok) throw new Error("Erro ao enviar texto");
         showToast('Sucesso', 'Texto enviado com sucesso!', 'success');
 
-        // 2️⃣ Se tiver imagem, faz upload e envia separadamente (sem repetir o texto)
+        // 2️⃣ Se tiver imagem, envia a imagem com o mesmo texto como legenda
         if (_selectedImageFile) {
             const imageUrl = await uploadToImgbb(_selectedImageFile);
 
             const imagePayload = {
+                message: message, // legenda da imagem
                 timestamp: Date.now(),
                 media: {
                     url: imageUrl,
@@ -182,40 +183,3 @@ function handleImageSelectedForImgBB(e) {
     _selectedImageFile = f;
 
     const reader = new FileReader();
-    reader.onload = (ev) => {
-        if (previewImgEl) { previewImgEl.src = ev.target.result; imagePreviewEl.style.display = 'block'; }
-    };
-    reader.readAsDataURL(f);
-}
-
-async function uploadToImgbb(file) {
-    const base64 = await fileToBase64(file);
-    const commaIndex = base64.indexOf(',');
-    const pureBase64 = commaIndex >= 0 ? base64.slice(commaIndex + 1) : base64;
-
-    const form = new FormData();
-    form.append('key', IMGBB_KEY);
-    form.append('image', pureBase64);
-    form.append('name', file.name.replace(/\.[^/.]+$/, ""));
-
-    const res = await fetch('https://api.imgbb.com/1/upload', {
-        method: 'POST',
-        body: form
-    });
-
-    const json = await res.json();
-    if (!res.ok || !json || !json.data) {
-        throw new Error('Falha upload imgbb: ' + (JSON.stringify(json) || res.statusText));
-    }
-
-    return json.data.display_url || json.data.url || json.data.thumb.url;
-}
-
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const fr = new FileReader();
-        fr.onload = () => resolve(fr.result);
-        fr.onerror = reject;
-        fr.readAsDataURL(file);
-    });
-}
