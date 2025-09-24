@@ -1,4 +1,4 @@
-// ================== CONFIG ===========vvvvvvvvvvvvvv=======
+// ================== CONFIG ==================
 let CONFIG = {
     maxChars: 2000,
     sheetId: '1nT_ccRwFtEWiYvh5s4iyIDTgOj5heLnXSixropbGL8s',
@@ -87,7 +87,7 @@ async function sendWebhook() {
     const apiUrl = "https://webhook.fiqon.app/webhook/9fd68837-4f32-4ee3-a756-418a87beadc9/79c39a2c-225f-4143-9ca4-0d70fa92ee12";
 
     try {
-        // 1️⃣ Envia o texto puro
+        // 1️⃣ Envia só o texto
         const textPayload = {
             message: message,
             timestamp: Date.now()
@@ -101,12 +101,11 @@ async function sendWebhook() {
 
         showToast('Sucesso', 'Texto enviado com sucesso!', 'success');
 
-        // 2️⃣ Se tiver imagem, envia a imagem com o texto como legenda
+        // 2️⃣ Se tiver imagem, envia só a imagem (sem legenda)
         if (_selectedImageFile) {
             const imageUrl = await uploadToImgbb(_selectedImageFile);
 
             const imagePayload = {
-                message: message, // legenda da imagem
                 timestamp: Date.now(),
                 media: {
                     url: imageUrl,
